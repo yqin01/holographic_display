@@ -172,11 +172,18 @@ Init_Gesture_Array = (
 
 
 class PAJ7620U2(object):
-	index = 0 
+	index = 0
 	miku_cycle = ['vlc --fullscreen --loop mikudance.mp4', 'vlc --fullscreen --loop mikutorin.mp4', 'vlc --fullscreen --loop DANCE.mp4']
-	process = subprocess.Popen(miku_cycle[index], shell = True)
-	#startup = subprocess.run(miku_cycle[index], shell=True)
-	#print(startup.stdout)
+	process = None
+	def save(self): 
+		with open('num.pickle', 'wb') as f:
+			pickle.dump(self.index, f)
+
+	def load(self): 
+		with open('num.pickle', 'rb') as f:
+			loaded_integer = pickle.load(f)
+			return loaded_integer
+
 	def __init__(self,address=PAJ7620U2_I2C_ADDRESS):
 		self._address = address
 		self._bus = smbus.SMBus(1)
@@ -190,6 +197,13 @@ class PAJ7620U2(object):
 		self._write_byte(PAJ_BANK_SELECT, 0)
 		for num in range(len(Init_Gesture_Array)):
 				self._write_byte(Init_Gesture_Array[num][0],Init_Gesture_Array[num][1])
+		try: 
+			self.index = self.load()
+		except: 
+			print("new")
+
+		self.process = subprocess.Popen(self.miku_cycle[self.index], shell = True)
+	
 	def _read_byte(self,cmd):
 		return self._bus.read_byte_data(self._address,cmd)
 	def _read_u16(self,cmd):
@@ -221,6 +235,7 @@ class PAJ7620U2(object):
 				self.index-=1
 			else: 
 				self.index = len(self.miku_cycle)-1
+			self.save()
 			self.play_video(self.miku_cycle[self.index])
 		elif Gesture_Data == PAJ_RIGHT:
 			print("Right\r\n")	
@@ -228,6 +243,7 @@ class PAJ7620U2(object):
 				self.index+=1
 			else: 
 				self.index = 0
+			self.save()
 			self.play_video(self.miku_cycle[self.index])
 		elif Gesture_Data == PAJ_FORWARD:
 			print("Forward\r\n")	
